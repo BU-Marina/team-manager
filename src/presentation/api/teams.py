@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from src.domain.users.entities import User
-from src.presentation.api.dependencies import get_current_user, require_role
+from src.presentation.api.dependencies import get_current_user, check_role
 from src.presentation.schemas.teams import (
     TeamCreateRequest,
     TeamJoinRequest,
@@ -29,9 +29,10 @@ async def get_team_usecases(
 async def create_team(
     data: TeamCreateRequest,
     current_user: User = Depends(get_current_user),
-    _: None = require_role("manager", "admin"),
     usecases: TeamUseCases = Depends(get_team_usecases),
 ):
+    check_role(current_user, "manager", "admin")
+
     try:
         team = await usecases.create_team(name=data.name, owner_id=current_user.id)
     except ValueError as e:
@@ -71,8 +72,14 @@ async def get_my_teams(
 @router.get("/{team_id}/members", response_model=list[UserResponse])
 async def get_team_members(
     team_id: int,
+    current_user: User = Depends(get_current_user),
     usecases: TeamUseCases = Depends(get_team_usecases),
 ):
+    if current_user.team_id != team_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Вы не состоите в этой команде",
+        )
     members = await usecases.get_team_members(team_id)
     return [
         UserResponse(
@@ -87,9 +94,10 @@ async def remove_member(
     team_id: int,
     member_id: int,
     current_user: User = Depends(get_current_user),
-    _: None = require_role("manager", "admin"),
     usecases: TeamUseCases = Depends(get_team_usecases),
 ):
+    check_role(current_user, "manager", "admin")
+
     try:
         await usecases.remove_member(team_id, member_id, current_user.id)
     except ValueError as e:

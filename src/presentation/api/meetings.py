@@ -7,7 +7,7 @@ from src.domain.meetings.usecases import MeetingUseCases
 from src.presentation.api.dependencies import (
     get_current_user,
     require_team,
-    require_role,
+    check_role,
 )
 from src.presentation.schemas.meetings import MeetingCreateRequest, MeetingResponse
 from src.config.database import get_session
@@ -32,9 +32,10 @@ async def get_meeting_usecases(
 async def schedule_meeting(
     data: MeetingCreateRequest,
     current_user: User = Depends(get_current_user),
-    _: None = require_role("manager", "admin"),
     usecases: MeetingUseCases = Depends(get_meeting_usecases),
 ):
+    check_role(current_user, "manager", "admin")
+
     if current_user.team_id != data.team_id:
         raise HTTPException(status_code=403, detail="Вы не состоите в этой команде")
 
@@ -55,9 +56,10 @@ async def schedule_meeting(
 async def cancel_meeting(
     meeting_id: int,
     current_user: User = Depends(get_current_user),
-    _: None = require_role("manager", "admin"),
     usecases: MeetingUseCases = Depends(get_meeting_usecases),
 ):
+    check_role(current_user, "manager", "admin")
+
     try:
         await usecases.cancel_meeting(meeting_id, current_user.id)
     except ValueError as e:

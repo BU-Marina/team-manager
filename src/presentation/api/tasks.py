@@ -4,7 +4,7 @@ from src.domain.tasks.usecases import TaskUseCases
 from src.presentation.api.dependencies import (
     get_current_user,
     require_team,
-    require_role,
+    check_role,
 )
 from src.presentation.schemas.tasks import (
     TaskCreateRequest,
@@ -36,9 +36,10 @@ async def get_task_usecases(
 async def create_task(
     data: TaskCreateRequest,
     current_user: User = Depends(get_current_user),
-    _: None = require_role("manager", "admin"),
     usecases: TaskUseCases = Depends(get_task_usecases),
 ):
+    check_role(current_user, "manager", "admin")
+
     if current_user.team_id != data.team_id:
         raise HTTPException(status_code=403, detail="Вы не состоите в этой команде")
 
@@ -129,7 +130,6 @@ async def add_comment(
 @router.get("/{task_id}/comments", response_model=list[CommentResponse])
 async def get_comments(
     task_id: int,
-    current_user: User = Depends(get_current_user),
     usecases: TaskUseCases = Depends(get_task_usecases),
 ):
     comments = await usecases.get_comments(task_id)
