@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from sqladmin import Admin
 
 from src.config.settings import settings
 from src.config.database import engine
@@ -13,6 +14,14 @@ from src.presentation.api.evaluations import router as evaluations_router
 from src.presentation.api.meetings import router as meetings_router
 from src.presentation.api.calendar import router as calendar_router
 from src.presentation.api.frontend import router as frontend_router
+from src.presentation.api.admin import (
+    UserAdmin,
+    TeamAdmin,
+    TaskAdmin,
+    CommentAdmin,
+    EvaluationAdmin,
+    MeetingAdmin,
+)
 
 
 @asynccontextmanager
@@ -32,6 +41,15 @@ def create_app() -> FastAPI:
     app.mount(
         "/static", StaticFiles(directory="src/presentation/static"), name="static"
     )
+
+    # Админ-панель
+    admin = Admin(app, engine)
+    admin.add_view(UserAdmin)
+    admin.add_view(TeamAdmin)
+    admin.add_view(TaskAdmin)
+    admin.add_view(CommentAdmin)
+    admin.add_view(EvaluationAdmin)
+    admin.add_view(MeetingAdmin)
 
     # Роуты
     app.include_router(users_router)

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from src.domain.users.entities import User
 from src.domain.evaluations.usecases import EvaluationUseCases
-from src.presentation.api.dependencies import get_current_user
+from src.presentation.api.dependencies import get_current_user, require_role
 from src.presentation.schemas.evaluations import (
     EvaluationCreateRequest,
     EvaluationResponse,
@@ -31,6 +31,7 @@ async def get_evaluation_usecases(
 async def create_evaluation(
     data: EvaluationCreateRequest,
     current_user: User = Depends(get_current_user),
+    _: None = require_role("manager", "admin"),
     usecases: EvaluationUseCases = Depends(get_evaluation_usecases),
 ):
     try:

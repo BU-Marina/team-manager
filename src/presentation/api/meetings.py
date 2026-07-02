@@ -4,7 +4,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.domain.users.entities import User
 from src.domain.meetings.usecases import MeetingUseCases
-from src.presentation.api.dependencies import get_current_user, require_team
+from src.presentation.api.dependencies import (
+    get_current_user,
+    require_team,
+    require_role,
+)
 from src.presentation.schemas.meetings import MeetingCreateRequest, MeetingResponse
 from src.config.database import get_session
 from src.infra.repositories.meeting_repository import SQLAlchemyMeetingRepository
@@ -28,6 +32,7 @@ async def get_meeting_usecases(
 async def schedule_meeting(
     data: MeetingCreateRequest,
     current_user: User = Depends(get_current_user),
+    _: None = require_role("manager", "admin"),
     usecases: MeetingUseCases = Depends(get_meeting_usecases),
 ):
     if current_user.team_id != data.team_id:
@@ -50,6 +55,7 @@ async def schedule_meeting(
 async def cancel_meeting(
     meeting_id: int,
     current_user: User = Depends(get_current_user),
+    _: None = require_role("manager", "admin"),
     usecases: MeetingUseCases = Depends(get_meeting_usecases),
 ):
     try:

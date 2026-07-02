@@ -32,6 +32,12 @@
     <div class="success" id="createTaskSuccess"></div>
     <div class="error" id="createTaskError"></div>
 </div>
+
+<div class="card">
+    <h1>Настройки профиля</h1>
+    <button class="danger" onclick="deleteAccount()">Удалить аккаунт</button>
+    <div class="error" id="deleteError"></div>
+</div>
 <script>
 // Кеш для команд и участников
 let teamsCache = [];
@@ -93,7 +99,7 @@ async function createTask() {
 async function loadTasks() {
     try {
         const tasks = await api('/api/tasks/my');
-        document.getElementById('tasks').innerHTML = tasks.map(t =>
+        const html = tasks.map(t =>
             `<div class="event task">
                 <strong>${t.title}</strong>
                 <span class="badge badge-${t.status}">${t.status}</span>
@@ -102,7 +108,10 @@ async function loadTasks() {
                 ${t.status === 'in_progress' ? `<br><button class="success" onclick="completeTask(${t.id})">Завершить</button>` : ''}
                 ${t.status === 'done' ? `<br><button onclick="evaluateTask(${t.id})">Оценить</button>` : ''}
             </div>`
-        ).join('') || '<p>Нет задач</p>';
+        ).join('');
+
+        console.log('Generated HTML:', html);
+        document.getElementById('tasks').innerHTML = html || '<p>Нет задач</p>';
     } catch (e) { showError('error', e.message); }
 }
 
@@ -126,7 +135,16 @@ async function evaluateTask(taskId) {
             score: parseInt(score),
             comment: comment || null,
         });
-        alert('Оценка сохранена!');
+        // Находим кнопку и заменяем её текстом
+        const taskDiv = document.querySelector(`.event.task button[onclick="evaluateTask(${taskId})"]`)?.parentElement;
+        if (taskDiv) {
+            taskDiv.querySelector('button').remove();
+            let text = `<br><small>Оценка: ${score}/5</small>`;
+            if (comment) {
+                text += `<br><small>Комментарий: ${comment}</small>`;
+            }
+            taskDiv.innerHTML += text;
+        }
     } catch (e) { alert(e.message); }
 }
 
@@ -144,6 +162,15 @@ async function loadCalendar() {
             </div>`
         ).join('') || '<p>Нет событий</p>';
     } catch (e) { alert(e.message); }
+}
+
+async function deleteAccount() {
+    if (!confirm('Вы уверены? Это действие нельзя отменить.')) return;
+    try {
+        await api('/api/auth/me', 'DELETE');
+        localStorage.removeItem('token');
+        window.location.href = '/';
+    } catch (e) { showError('deleteError', e.message); }
 }
 
 document.addEventListener('DOMContentLoaded', function() {

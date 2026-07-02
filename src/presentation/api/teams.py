@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from src.domain.users.entities import User
-from src.presentation.api.dependencies import get_current_user, require_team
+from src.presentation.api.dependencies import get_current_user, require_role
 from src.presentation.schemas.teams import (
     TeamCreateRequest,
     TeamJoinRequest,
@@ -29,6 +29,7 @@ async def get_team_usecases(
 async def create_team(
     data: TeamCreateRequest,
     current_user: User = Depends(get_current_user),
+    _: None = require_role("manager", "admin"),
     usecases: TeamUseCases = Depends(get_team_usecases),
 ):
     try:
@@ -86,7 +87,7 @@ async def remove_member(
     team_id: int,
     member_id: int,
     current_user: User = Depends(get_current_user),
-    _: None = Depends(require_team),
+    _: None = require_role("manager", "admin"),
     usecases: TeamUseCases = Depends(get_team_usecases),
 ):
     try:

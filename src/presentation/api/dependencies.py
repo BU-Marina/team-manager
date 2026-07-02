@@ -52,3 +52,14 @@ def require_team(team_id: int, current_user: User = Depends(get_current_user)):
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Вы не состоите в этой команде",
         )
+
+
+def require_role(*roles: str):
+    async def checker(current_user: User = Depends(get_current_user)):
+        if current_user.role not in roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Требуется роль: {', '.join(roles)}",
+            )
+
+    return Depends(checker)

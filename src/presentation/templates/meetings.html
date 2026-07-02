@@ -8,7 +8,10 @@
 <div class="card">
     <h1>Назначить встречу</h1>
     <div class="form-group"><label>Название:</label><input type="text" id="meetingTitle"></div>
-    <div class="form-group"><label>Команда (ID):</label><input type="number" id="meetingTeam"></div>
+    <div class="form-group">
+        <label>Команда:</label>
+        <select id="meetingTeam"></select>
+    </div>
     <div class="form-group"><label>Начало:</label><input type="datetime-local" id="meetingStart"></div>
     <div class="form-group"><label>Конец:</label><input type="datetime-local" id="meetingEnd"></div>
     <button onclick="createMeeting()">Создать</button>
@@ -16,10 +19,6 @@
     <div class="error" id="meetingError"></div>
 </div>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        loadMeetings();
-    });
-
     async function createMeeting() {
         hideError('meetingError');
         try {
@@ -43,5 +42,20 @@
                 .join('') || '<p>Нет встреч</p>';
         } catch (e) { alert(e.message); }
     }
+    async function loadMyTeams() {
+        try {
+            const teams = await api('/api/teams/my');
+            const select = document.getElementById('meetingTeam');
+            select.innerHTML = '<option value="">-- Выберите команду --</option>';
+            teams.forEach(t => {
+                select.innerHTML += `<option value="${t.id}">${t.name}</option>`;
+            });
+        } catch (e) {}
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        loadMyTeams();
+        loadMeetings();
+    });
 </script>
 {% endblock %}

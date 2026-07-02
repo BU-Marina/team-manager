@@ -1,7 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from src.domain.users.entities import User
 from src.domain.tasks.usecases import TaskUseCases
-from src.presentation.api.dependencies import get_current_user, require_team
+from src.presentation.api.dependencies import (
+    get_current_user,
+    require_team,
+    require_role,
+)
 from src.presentation.schemas.tasks import (
     TaskCreateRequest,
     TaskUpdateStatusRequest,
@@ -32,6 +36,7 @@ async def get_task_usecases(
 async def create_task(
     data: TaskCreateRequest,
     current_user: User = Depends(get_current_user),
+    _: None = require_role("manager", "admin"),
     usecases: TaskUseCases = Depends(get_task_usecases),
 ):
     if current_user.team_id != data.team_id:
