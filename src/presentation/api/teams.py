@@ -6,6 +6,7 @@ from src.presentation.schemas.teams import (
     TeamJoinRequest,
     TeamResponse,
 )
+from src.presentation.schemas.users import UserResponse
 from src.domain.teams.usecases import TeamUseCases
 from src.infra.repositories.user_repository import SQLAlchemyUserRepository
 from src.infra.repositories.team_repository import SQLAlchemyTeamRepository
@@ -52,3 +53,30 @@ async def join_team(
     return TeamResponse(
         id=team.id, name=team.name, owner_id=team.owner_id, code=str(team.code)
     )
+
+
+@router.get("/my", response_model=list[TeamResponse])
+async def get_my_teams(
+    current_user: User = Depends(get_current_user),
+    usecases: TeamUseCases = Depends(get_team_usecases),
+):
+    teams = await usecases.get_user_teams(current_user.id)
+    return [
+        TeamResponse(id=t.id, name=t.name, owner_id=t.owner_id, code=str(t.code))
+        for t in teams
+    ]
+
+
+@router.get("/{team_id}/members", response_model=list[UserResponse])
+async def get_team_members(
+    team_id: int,
+    current_user: User = Depends(get_current_user),
+    usecases: TeamUseCases = Depends(get_team_usecases),
+):
+    members = await usecases.get_team_members(team_id)
+    return [
+        UserResponse(
+            id=m.id, email=m.email, role=str(m.role), display_name=m.display_name
+        )
+        for m in members
+    ]

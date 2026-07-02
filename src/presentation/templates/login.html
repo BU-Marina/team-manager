@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <h1>Вход</h1>
+    <div class="form-group"><label>Email:</label><input type="email" id="email"></div>
+    <div class="form-group"><label>Пароль:</label><input type="password" id="password"></div>
+    <button onclick="login()">Войти</button>
+    <div class="error" id="error"></div>
+</div>
+<script>
+async function login() {
+    hideError('error');
+    try {
+        const data = await api('/api/auth/login', 'POST', {
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value,
+        });
+        localStorage.setItem('token', data.access_token);
+        window.location.href = '/dashboard';
+    } catch (e) { showError('error', e.message); }
+}
+</script>
+{% endblock %}

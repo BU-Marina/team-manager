@@ -29,3 +29,6 @@ class User:
 
     def join_team(self, team_id: int) -> None:
         self.team_id = team_id
+
+    def is_manager_or_admin(self) -> bool:
+        return self.role in (UserRole.MANAGER, UserRole.ADMIN)

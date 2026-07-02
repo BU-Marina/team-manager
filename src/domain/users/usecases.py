@@ -1,5 +1,5 @@
 from .entities import User
-from .value_objects import Email, RawPassword
+from .value_objects import Email, RawPassword, UserRole
 from .interfaces import UserRepository, PasswordHasher
 
 
@@ -49,3 +49,14 @@ class UserUseCases:
         if not user:
             raise ValueError("Пользователь не найден")
         await self._repo.delete(user)
+
+    async def change_role(self, admin_id: int, user_id: int, new_role: str) -> User:
+        admin = await self._repo.get_by_id(admin_id)
+        if not admin or admin.role != UserRole.ADMIN:
+            raise ValueError("Только админ может менять роли")
+        user = await self._repo.get_by_id(user_id)
+        if not user:
+            raise ValueError("Пользователь не найден")
+        user.role = UserRole(new_role)
+        await self._repo.save(user)
+        return user

@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <h1>Создать задачу</h1>
+    <div class="form-group"><label>Название:</label><input type="text" id="taskTitle"></div>
+    <div class="form-group"><label>Описание:</label><textarea id="taskDesc"></textarea></div>
+    <div class="form-group">
+        <label>Команда:</label>
+        <select id="taskTeam"></select>
+    </div>
+    <div class="form-group">
+        <label>Исполнитель:</label>
+        <select id="taskAssignee"></select>
+    </div>
+    <div class="form-group"><label>Дедлайн:</label><input type="datetime-local" id="taskDeadline"></div>
+    <button onclick="createTask()">Создать</button>
+    <div class="success" id="createTaskSuccess"></div>
+    <div class="error" id="createTaskError"></div>
+</div>
+
+<div class="card">
+    <h1>Мои задачи</h1>
+    <button onclick="loadTasks()">Обновить</button>
+    <div id="tasks"></div>
+    <div class="error" id="error"></div>
+</div>
+
+<div class="card">
+    <h1>Календарь</h1>
+    <div class="form-group"><label>С:</label><input type="date" id="startDate"></div>
+    <div class="form-group"><label>По:</label><input type="date" id="endDate"></div>
+    <button onclick="loadCalendar()">Показать</button>
+    <div id="calendar"></div>
+</div>
+<script>
+// Кеш для команд и участников
+let teamsCache = [];
+let membersCache = {};
+
+async function loadTeamsAndMembers() {
+    try {
+        // Загружаем команды пользователя
+        teamsCache = await api('/api/teams/my');
+        const teamSelect = document.getElementById('taskTeam');
+        teamSelect.innerHTML = '<option value="">-- Выберите команду --</option>';
+        for (const team of teamsCache) {
+            teamSelect.innerHTML += `<option value="${team.id}">${team.name}</option>`;
+            // Загружаем участников каждой команды
+            if (!membersCache[team.id]) {
+                membersCache[team.id] = await api(`/api/teams/${team.id}/members`);
+            }
+        }
+    } catch (e) {
+        console.error('Ошибка загрузки команд:', e);
+    }
+}
+
+function updateAssigneeSelect() {
+    const teamId = parseInt(document.getElementById('taskTeam').value);
+    const assigneeSelect = document.getElementById('taskAssignee');
+    assigneeSelect.innerHTML = '<option value="">-- Выберите исполнителя --</option>';
+    if (teamId && membersCache[teamId]) {
+        for (const member of membersCache[teamId]) {
+            assigneeSelect.innerHTML += `<option value="${member.id}">${member.email}</option>`;
+        }
+    }
+}
+
+document.getElementById('taskTeam').addEventListener('change', updateAssigneeSelect);
+
+async function createTask() {
+    hideError('createTaskError');
+    try {
+        const deadline = document.getElementById('taskDeadline').value;
+        const teamId = parseInt(document.getElementById('taskTeam').value);
+        const assigneeId = parseInt(document.getElementById('taskAssignee').value);
+        if (!teamId || !assigneeId) {
+            showError('createTaskError', 'Выберите команду и исполнителя');
+            return;
+        }
+        await api('/api/tasks/', 'POST', {
+            title: document.getElementById('taskTitle').value,
+            description: document.getElementById('taskDesc').value,
+            assignee_id: assigneeId,
+            team_id: teamId,
+            deadline: deadline ? new Date(deadline).toISOString() : null,
+        });
+        showSuccess('createTaskSuccess', 'Задача создана!');
+        loadTasks();
+    } catch (e) { showError('createTaskError', e.message); }
+}
+
+async function loadTasks() {
+    try {
+        const tasks = await api('/api/tasks/my');
+        document.getElementById('tasks').innerHTML = tasks.map(t =>
+            `<div class="event task">
+                <strong>${t.title}</strong>
+                <span class="badge badge-${t.status}">${t.status}</span>
+                ${t.deadline ? `<br><small>Дедлайн: ${new Date(t.deadline).toLocaleString()}</small>` : ''}
+                ${t.status === 'open' ? `<br><button class="success" onclick="startTask(${t.id})">Начать</button>` : ''}
+                ${t.status === 'in_progress' ? `<br><button class="success" onclick="completeTask(${t.id})">Завершить</button>` : ''}
+                ${t.status === 'done' ? `<br><button onclick="evaluateTask(${t.id})">Оценить</button>` : ''}
+            </div>`
+        ).join('') || '<p>Нет задач</p>';
+    } catch (e) { showError('error', e.message); }
+}
+
+async function startTask(id) {
+    try { await api(`/api/tasks/${id}/status`, 'POST', {action: 'start'}); loadTasks(); }
+    catch (e) { alert(e.message); }
+}
+
+async function completeTask(id) {
+    try { await api(`/api/tasks/${id}/status`, 'POST', {action: 'complete'}); loadTasks(); }
+    catch (e) { alert(e.message); }
+}
+
+async function evaluateTask(taskId) {
+    const score = prompt('Оценка (1-5):');
+    if (!score) return;
+    const comment = prompt('Комментарий (опционально):');
+    try {
+        await api('/api/evaluations/', 'POST', {
+            task_id: taskId,
+            score: parseInt(score),
+            comment: comment || null,
+        });
+        alert('Оценка сохранена!');
+    } catch (e) { alert(e.message); }
+}
+
+async function loadCalendar() {
+    const start = document.getElementById('startDate').value;
+    const end = document.getElementById('endDate').value;
+    if (!start || !end) return;
+    try {
+        const data = await api(`/api/calendar/?start=${start}T00:00:00&end=${end}T23:59:59`);
+        document.getElementById('calendar').innerHTML = data.events.map(e =>
+            `<div class="event ${e.type}">
+                <strong>${e.type === 'task' ? 'Задача' : 'Встреча'}: ${e.title}</strong>
+                <br><small>${new Date(e.start).toLocaleString()}</small>
+                ${e.status ? `<span class="badge badge-${e.status}">${e.status}</span>` : ''}
+            </div>`
+        ).join('') || '<p>Нет событий</p>';
+    } catch (e) { alert(e.message); }
+}
+
+loadTasks();
+loadTeamsAndMembers();
+</script>
+{% endblock %}

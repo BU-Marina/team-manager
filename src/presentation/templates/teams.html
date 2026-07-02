@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+    <h1>Создать команду</h1>
+    <div class="form-group"><label>Название:</label><input type="text" id="teamName" placeholder="Dream Team"></div>
+    <button onclick="createTeam()">Создать</button>
+    <div class="success" id="createSuccess"></div>
+    <div class="error" id="createError"></div>
+</div>
+
+<div class="card">
+    <h1>Присоединиться к команде</h1>
+    <div class="form-group"><label>Код приглашения:</label><input type="text" id="joinCode" placeholder="ABC123..."></div>
+    <button onclick="joinTeam()">Присоединиться</button>
+    <div class="success" id="joinSuccess"></div>
+    <div class="error" id="joinError"></div>
+</div>
+<script>
+async function createTeam() {
+    hideError('createError');
+    try {
+        const data = await api('/api/teams/', 'POST', {name: document.getElementById('teamName').value});
+        showSuccess('createSuccess', `Команда создана! Код: ${data.code}`);
+    } catch (e) { showError('createError', e.message); }
+}
+async function joinTeam() {
+    hideError('joinError');
+    try {
+        await api('/api/teams/join', 'POST', {code: document.getElementById('joinCode').value});
+        showSuccess('joinSuccess', 'Вы вступили в команду!');
+    } catch (e) { showError('joinError', e.message); }
+}
+</script>
+{% endblock %}

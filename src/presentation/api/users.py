@@ -8,6 +8,8 @@ from src.presentation.schemas.users import (
     TokenResponse,
     RefreshRequest,
     UserResponse,
+    ChangeRoleRequest,
+    DeleteAccountResponse,
 )
 from src.presentation.api.dependencies import get_user_usecases, get_current_user
 
@@ -69,6 +71,28 @@ async def refresh(
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
     return _user_to_response(current_user)
+
+
+@router.put("/role", response_model=UserResponse)
+async def change_role(
+    data: ChangeRoleRequest,
+    current_user: User = Depends(get_current_user),
+    usecases: UserUseCases = Depends(get_user_usecases),
+):
+    try:
+        user = await usecases.change_role(current_user.id, data.user_id, data.role)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    return _user_to_response(user)
+
+
+@router.delete("/me", response_model=DeleteAccountResponse)
+async def delete_account(
+    current_user: User = Depends(get_current_user),
+    usecases: UserUseCases = Depends(get_user_usecases),
+):
+    await usecases.delete_account(current_user.id)
+    return DeleteAccountResponse(message="Аккаунт удалён")
 
 
 def _user_to_response(user: User) -> UserResponse:

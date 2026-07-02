@@ -26,3 +26,12 @@ class UserResponse(BaseModel):
     email: str
     role: str
     display_name: str | None = None
+
+
+class ChangeRoleRequest(BaseModel):
+    user_id: int
+    role: str  # member, manager, admin
+
+
+class DeleteAccountResponse(BaseModel):
+    message: str

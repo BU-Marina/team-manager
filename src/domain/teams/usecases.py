@@ -2,6 +2,7 @@ from .entities import Team
 from .value_objects import TeamCode
 from .interfaces import TeamRepository
 from ..users.interfaces import UserRepository
+from ..users.entities import User
 
 
 class TeamUseCases:
@@ -28,3 +29,9 @@ class TeamUseCases:
         user.join_team(team.id)
         await self._user_repo.save(user)
         return team
+
+    async def get_user_teams(self, user_id: int) -> list[Team]:
+        return await self._team_repo.get_by_user(user_id)
+
+    async def get_team_members(self, team_id: int) -> list[User]:
+        return await self._team_repo.get_members(team_id)

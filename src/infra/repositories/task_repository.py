@@ -1,9 +1,14 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.domain.tasks.entities import Task
 from src.domain.tasks.value_objects import TaskStatus
 from src.domain.tasks.interfaces import TaskRepository
-from src.infra.database.models import TaskModel
+from src.domain.teams.entities import Team
+from src.domain.users.entities import User
+from src.infra.database.models import TaskModel, TeamModel, UserModel
+
+from .user_converter import UserConverter
 
 
 class SQLAlchemyTaskRepository(TaskRepository):
@@ -62,3 +67,17 @@ class SQLAlchemyTaskRepository(TaskRepository):
             status=TaskStatus(model.status),
             created_at=model.created_at,
         )
+
+    async def get_by_user(self, user_id: int) -> list[Team]:
+        stmt = (
+            select(TeamModel)
+            .join(UserModel, UserModel.team_id == TeamModel.id)
+            .where(UserModel.id == user_id)
+        )
+        result = await self._session.execute(stmt)
+        return [self._to_domain(m) for m in result.scalars().all()]
+
+    async def get_members(self, team_id: int) -> list[User]:
+        stmt = select(UserModel).where(UserModel.team_id == team_id)
+        result = await self._session.execute(stmt)
+        return [UserConverter.to_domain(m) for m in result.scalars().all()]
