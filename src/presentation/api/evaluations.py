@@ -62,3 +62,13 @@ def _eval_to_response(evaluation) -> EvaluationResponse:
         score=evaluation.score,
         comment=evaluation.comment,
     )
+
+
+@router.get("/average/{user_id}", response_model=dict)
+async def get_average_score(
+    user_id: int,
+    current_user: User = Depends(get_current_user),
+    usecases: EvaluationUseCases = Depends(get_evaluation_usecases),
+):
+    avg = await usecases.get_average_score(user_id)
+    return {"user_id": user_id, "average_score": avg}

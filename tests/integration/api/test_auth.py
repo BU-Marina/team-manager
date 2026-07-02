@@ -64,3 +64,38 @@ class TestAuth:
             },
         )
         assert response.status_code == 401
+
+    async def test_change_password(self, client: AsyncClient):
+        token = await self._register_and_login(client, "chpass@test.com", "SecurePass1")
+
+        resp = await client.post(
+            "/api/auth/change-password",
+            json={
+                "old_password": "SecurePass1",
+                "new_password": "NewPass1",
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp.status_code == 200
+
+        login_resp = await client.post(
+            "/api/auth/login",
+            json={"email": "chpass@test.com", "password": "SecurePass1"},
+        )
+        assert login_resp.status_code == 401
+
+        login_resp = await client.post(
+            "/api/auth/login", json={"email": "chpass@test.com", "password": "NewPass1"}
+        )
+        assert login_resp.status_code == 200
+
+    async def _register_and_login(
+        self, client: AsyncClient, email: str, password: str
+    ) -> str:
+        await client.post(
+            "/api/auth/register", json={"email": email, "password": password}
+        )
+        response = await client.post(
+            "/api/auth/login", json={"email": email, "password": password}
+        )
+        return response.json()["access_token"]

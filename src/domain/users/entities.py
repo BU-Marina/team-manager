@@ -32,3 +32,6 @@ class User:
 
     def is_manager_or_admin(self) -> bool:
         return self.role in (UserRole.MANAGER, UserRole.ADMIN)
+
+    def leave_team(self) -> None:
+        self.team_id = None

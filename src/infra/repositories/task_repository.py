@@ -7,6 +7,8 @@ from src.domain.tasks.interfaces import TaskRepository
 from src.domain.teams.entities import Team
 from src.domain.users.entities import User
 from src.infra.database.models import TaskModel, TeamModel, UserModel
+from src.domain.tasks.entities import Comment
+from src.infra.database.models import CommentModel
 
 from .user_converter import UserConverter
 
@@ -81,3 +83,39 @@ class SQLAlchemyTaskRepository(TaskRepository):
         stmt = select(UserModel).where(UserModel.team_id == team_id)
         result = await self._session.execute(stmt)
         return [UserConverter.to_domain(m) for m in result.scalars().all()]
+
+    async def add_comment(self, comment: Comment) -> Comment:
+        model = CommentModel(
+            task_id=comment.task_id,
+            author_id=comment.author_id,
+            text=comment.text,
+            created_at=comment.created_at,
+        )
+        self._session.add(model)
+        await self._session.flush()
+        await self._session.refresh(model)
+        return Comment(
+            id=model.id,
+            task_id=model.task_id,
+            author_id=model.author_id,
+            text=model.text,
+            created_at=model.created_at,
+        )
+
+    async def get_comments(self, task_id: int) -> list[Comment]:
+        stmt = (
+            select(CommentModel)
+            .where(CommentModel.task_id == task_id)
+            .order_by(CommentModel.created_at)
+        )
+        result = await self._session.execute(stmt)
+        return [
+            Comment(
+                id=m.id,
+                task_id=m.task_id,
+                author_id=m.author_id,
+                text=m.text,
+                created_at=m.created_at,
+            )
+            for m in result.scalars().all()
+        ]

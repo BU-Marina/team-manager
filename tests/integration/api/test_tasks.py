@@ -34,6 +34,13 @@ class TestTasksAPI:
         team_id = create_team_resp.json()["id"]
         code = create_team_resp.json()["code"]
 
+        # Создатель вступает в команду
+        await client.post(
+            "/api/teams/join",
+            json={"code": code},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
         # Участник вступает в команду
         await client.post(
             "/api/teams/join",
@@ -82,6 +89,12 @@ class TestTasksAPI:
         await client.post(
             "/api/teams/join",
             json={"code": code},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        await client.post(
+            "/api/teams/join",
+            json={"code": code},
             headers={"Authorization": f"Bearer {member_token}"},
         )
 
@@ -119,3 +132,53 @@ class TestTasksAPI:
         )
         assert complete_resp.status_code == 200
         assert complete_resp.json()["status"] == "done"
+
+    async def test_add_and_get_comments(self, client: AsyncClient):
+        token = await self._register_and_login(
+            client, "commenter@test.com", "SecurePass1"
+        )
+
+        create_team = await client.post(
+            "/api/teams/",
+            json={"name": "Team"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        team_id = create_team.json()["id"]
+        code = create_team.json()["code"]  # ← code из КОМАНДЫ, не из задачи
+
+        await client.post(
+            "/api/teams/join",
+            json={"code": code},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+
+        me = await client.get(
+            "/api/auth/me", headers={"Authorization": f"Bearer {token}"}
+        )
+        my_id = me.json()["id"]
+
+        create_task = await client.post(
+            "/api/tasks/",
+            json={
+                "title": "Task",
+                "description": "Desc",
+                "assignee_id": my_id,
+                "team_id": team_id,
+            },
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        task_id = create_task.json()["id"]
+
+        resp = await client.post(
+            f"/api/tasks/{task_id}/comments",
+            json={"text": "Nice"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp.status_code == 201
+        assert resp.json()["text"] == "Nice"
+
+        comments = await client.get(
+            f"/api/tasks/{task_id}/comments",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert len(comments.json()) == 1

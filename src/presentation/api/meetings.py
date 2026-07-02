@@ -1,14 +1,15 @@
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.domain.users.entities import User
 from src.domain.meetings.usecases import MeetingUseCases
-from src.presentation.api.dependencies import get_current_user
+from src.presentation.api.dependencies import get_current_user, require_team
 from src.presentation.schemas.meetings import MeetingCreateRequest, MeetingResponse
 from src.config.database import get_session
 from src.infra.repositories.meeting_repository import SQLAlchemyMeetingRepository
 from src.infra.repositories.team_repository import SQLAlchemyTeamRepository
 from src.infra.repositories.user_repository import SQLAlchemyUserRepository
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/api/meetings", tags=["meetings"])
 
@@ -29,6 +30,9 @@ async def schedule_meeting(
     current_user: User = Depends(get_current_user),
     usecases: MeetingUseCases = Depends(get_meeting_usecases),
 ):
+    if current_user.team_id != data.team_id:
+        raise HTTPException(status_code=403, detail="Вы не состоите в этой команде")
+
     try:
         meeting = await usecases.schedule_meeting(
             title=data.title,
@@ -57,7 +61,7 @@ async def cancel_meeting(
 @router.get("/team/{team_id}", response_model=list[MeetingResponse])
 async def get_team_meetings(
     team_id: int,
-    current_user: User = Depends(get_current_user),
+    _: None = Depends(require_team),
     usecases: MeetingUseCases = Depends(get_meeting_usecases),
 ):
     meetings = await usecases.get_team_meetings(team_id)

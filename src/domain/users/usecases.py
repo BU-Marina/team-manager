@@ -60,3 +60,14 @@ class UserUseCases:
         user.role = UserRole(new_role)
         await self._repo.save(user)
         return user
+
+    async def change_password(
+        self, user_id: int, old_password: str, new_password: str
+    ) -> None:
+        user = await self._repo.get_by_id(user_id)
+        if not user:
+            raise ValueError("Пользователь не найден")
+        if not self._hasher.verify(RawPassword(old_password), user.hashed_password):
+            raise ValueError("Неверный текущий пароль")
+        user.hashed_password = self._hasher.hash(RawPassword(new_password))
+        await self._repo.save(user)

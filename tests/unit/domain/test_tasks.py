@@ -1,5 +1,5 @@
 import pytest
-from src.domain.tasks.entities import Task
+from src.domain.tasks.entities import Task, Comment
 from src.domain.tasks.value_objects import TaskStatus
 
 
@@ -52,3 +52,15 @@ class TestTask:
         )
         with pytest.raises(ValueError):
             task.complete()
+
+
+@pytest.mark.unit
+@pytest.mark.tasks
+class TestComments:
+    def test_create_comment(self):
+        comment = Comment.create(task_id=1, author_id=2, text="Good job")
+        assert comment.text == "Good job"
+
+    def test_create_empty_comment_fails(self):
+        with pytest.raises(ValueError):
+            Comment.create(task_id=1, author_id=2, text=" ")

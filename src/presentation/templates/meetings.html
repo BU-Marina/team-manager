@@ -1,6 +1,11 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="card">
+    <h1>Мои встречи</h1>
+    <button onclick="loadMeetings()">Обновить</button>
+    <div id="meetings"></div>
+</div>
+<div class="card">
     <h1>Назначить встречу</h1>
     <div class="form-group"><label>Название:</label><input type="text" id="meetingTitle"></div>
     <div class="form-group"><label>Команда (ID):</label><input type="number" id="meetingTeam"></div>
@@ -10,35 +15,33 @@
     <div class="success" id="meetingSuccess"></div>
     <div class="error" id="meetingError"></div>
 </div>
-<div class="card">
-    <h1>Мои встречи</h1>
-    <button onclick="loadMeetings()">Обновить</button>
-    <div id="meetings"></div>
-</div>
 <script>
-async function createMeeting() {
-    hideError('meetingError');
-    try {
-        await api('/api/meetings/', 'POST', {
-            title: document.getElementById('meetingTitle').value,
-            team_id: parseInt(document.getElementById('meetingTeam').value),
-            start_time: new Date(document.getElementById('meetingStart').value).toISOString(),
-            end_time: new Date(document.getElementById('meetingEnd').value).toISOString(),
-        });
-        showSuccess('meetingSuccess', 'Встреча создана!');
+    document.addEventListener('DOMContentLoaded', function() {
         loadMeetings();
-    } catch (e) { showError('meetingError', e.message); }
-}
-async function loadMeetings() {
-    try {
-        const data = await api('/api/calendar/?start=2020-01-01T00:00:00&end=2030-01-01T00:00:00');
-        document.getElementById('meetings').innerHTML = data.events
-            .filter(e => e.type === 'meeting')
-            .map(m => `<div class="event meeting"><strong>${m.title}</strong><br>
-                ${new Date(m.start).toLocaleString()} — ${new Date(m.end).toLocaleString()}</div>`)
-            .join('') || '<p>Нет встреч</p>';
-    } catch (e) { alert(e.message); }
-}
-loadMeetings();
+    });
+
+    async function createMeeting() {
+        hideError('meetingError');
+        try {
+            await api('/api/meetings/', 'POST', {
+                title: document.getElementById('meetingTitle').value,
+                team_id: parseInt(document.getElementById('meetingTeam').value),
+                start_time: new Date(document.getElementById('meetingStart').value).toISOString(),
+                end_time: new Date(document.getElementById('meetingEnd').value).toISOString(),
+            });
+            showSuccess('meetingSuccess', 'Встреча создана!');
+            loadMeetings();
+        } catch (e) { showError('meetingError', e.message); }
+    }
+    async function loadMeetings() {
+        try {
+            const data = await api('/api/calendar/?start=2020-01-01T00:00:00&end=2030-01-01T00:00:00');
+            document.getElementById('meetings').innerHTML = data.events
+                .filter(e => e.type === 'meeting')
+                .map(m => `<div class="event meeting"><strong>${m.title}</strong><br>
+                    ${new Date(m.start).toLocaleString()} — ${new Date(m.end).toLocaleString()}</div>`)
+                .join('') || '<p>Нет встреч</p>';
+        } catch (e) { alert(e.message); }
+    }
 </script>
 {% endblock %}

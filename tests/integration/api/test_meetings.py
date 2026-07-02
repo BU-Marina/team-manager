@@ -27,6 +27,13 @@ class TestMeetingsAPI:
             headers={"Authorization": f"Bearer {token}"},
         )
         team_id = create_team_resp.json()["id"]
+        code = create_team_resp.json()["code"]
+
+        await client.post(
+            "/api/teams/join",
+            json={"code": code},
+            headers={"Authorization": f"Bearer {token}"},
+        )
 
         now = datetime.now()
         response = await client.post(
@@ -52,6 +59,13 @@ class TestMeetingsAPI:
             headers={"Authorization": f"Bearer {token}"},
         )
         team_id = create_team_resp.json()["id"]
+        code = create_team_resp.json()["code"]
+
+        await client.post(
+            "/api/teams/join",
+            json={"code": code},
+            headers={"Authorization": f"Bearer {token}"},
+        )
 
         now = datetime.now()
         start = now + timedelta(days=2)

@@ -1,6 +1,12 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="card">
+    <h1>Мои команды</h1>
+    <button onclick="loadMyTeams()">Обновить</button>
+    <div id="myTeams"></div>
+</div>
+
+<div class="card">
     <h1>Создать команду</h1>
     <div class="form-group"><label>Название:</label><input type="text" id="teamName" placeholder="Dream Team"></div>
     <button onclick="createTeam()">Создать</button>
@@ -16,11 +22,44 @@
     <div class="error" id="joinError"></div>
 </div>
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    loadMyTeams();
+});
+async function loadMyTeams() {
+    try {
+        const teams = await api('/api/teams/my');
+        const teamCards = [];
+        for (const t of teams) {
+            try {
+                const members = await api(`/api/teams/${t.id}/members`);
+                teamCards.push(
+                    `<div class="event">
+                        <strong>${t.name}</strong>
+                        <br><small>Код: ${t.code}</small>
+                        <br><small>Участников: ${members.length}</small>
+                    </div>`
+                );
+            } catch (e) {
+                teamCards.push(
+                    `<div class="event">
+                        <strong>${t.name}</strong>
+                        <br><small>Код: ${t.code}</small>
+                        <br><small>Участников: ошибка загрузки</small>
+                    </div>`
+                );
+            }
+        }
+        document.getElementById('myTeams').innerHTML = teamCards.join('') || '<p>Вы не состоите ни в одной команде</p>';
+    } catch (e) {
+        document.getElementById('myTeams').innerHTML = '<p>Ошибка загрузки команд</p>';
+    }
+}
 async function createTeam() {
     hideError('createError');
     try {
         const data = await api('/api/teams/', 'POST', {name: document.getElementById('teamName').value});
         showSuccess('createSuccess', `Команда создана! Код: ${data.code}`);
+        loadMyTeams();
     } catch (e) { showError('createError', e.message); }
 }
 async function joinTeam() {
@@ -28,6 +67,7 @@ async function joinTeam() {
     try {
         await api('/api/teams/join', 'POST', {code: document.getElementById('joinCode').value});
         showSuccess('joinSuccess', 'Вы вступили в команду!');
+        loadMyTeams();
     } catch (e) { showError('joinError', e.message); }
 }
 </script>

@@ -1,5 +1,5 @@
 from datetime import datetime
-from .entities import Task
+from .entities import Task, Comment
 from .interfaces import TaskRepository
 from ..users.interfaces import UserRepository
 from ..teams.interfaces import TeamRepository
@@ -70,3 +70,13 @@ class TaskUseCases:
 
     async def get_user_tasks(self, user_id: int) -> list[Task]:
         return await self._task_repo.get_by_assignee(user_id)
+
+    async def add_comment(self, task_id: int, author_id: int, text: str) -> Comment:
+        task = await self._task_repo.get_by_id(task_id)
+        if not task:
+            raise ValueError("Задача не найдена")
+        comment = Comment.create(task_id=task_id, author_id=author_id, text=text)
+        return await self._task_repo.add_comment(comment)
+
+    async def get_comments(self, task_id: int) -> list[Comment]:
+        return await self._task_repo.get_comments(task_id)

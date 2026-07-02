@@ -1,8 +1,10 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.config.database import get_session
 from src.domain.users.usecases import UserUseCases
+from src.domain.users.entities import User
 from src.infra.repositories.user_repository import SQLAlchemyUserRepository
 from src.infra.auth.password_hasher import BcryptPasswordHasher
 from src.infra.auth.jwt import decode_token
@@ -41,3 +43,12 @@ async def get_current_user(
         )
 
     return user
+
+
+def require_team(team_id: int, current_user: User = Depends(get_current_user)):
+    """Проверяет, что текущий пользователь принадлежит команде team_id."""
+    if current_user.team_id != team_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Вы не состоите в этой команде",
+        )

@@ -51,3 +51,62 @@ class TestTeams:
             headers={"Authorization": f"Bearer {member_token}"},
         )
         assert join_resp.status_code == 200
+
+    async def test_remove_member(self, client: AsyncClient):
+        owner_token = await self._register_and_login(
+            client, "owner_remove@test.com", "SecurePass1"
+        )
+        member_token = await self._register_and_login(
+            client, "member_remove@test.com", "SecurePass1"
+        )
+
+        create_resp = await client.post(
+            "/api/teams/",
+            json={"name": "Team"},
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+        team_id = create_resp.json()["id"]
+        code = create_resp.json()["code"]
+
+        await client.post(
+            "/api/teams/join",
+            json={"code": code},
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+
+        await client.post(
+            "/api/teams/join",
+            json={"code": code},
+            headers={"Authorization": f"Bearer {member_token}"},
+        )
+        me_resp = await client.get(
+            "/api/auth/me", headers={"Authorization": f"Bearer {member_token}"}
+        )
+        member_id = me_resp.json()["id"]
+
+        response = await client.delete(
+            f"/api/teams/{team_id}/members/{member_id}",
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+        assert response.status_code == 204
+
+    async def test_access_foreign_team_forbidden(self, client: AsyncClient):
+        owner_token = await self._register_and_login(
+            client, "owner1@test.com", "SecurePass1"
+        )
+        outsider_token = await self._register_and_login(
+            client, "outsider@test.com", "SecurePass1"
+        )
+
+        create_resp = await client.post(
+            "/api/teams/",
+            json={"name": "Team"},
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+        team_id = create_resp.json()["id"]
+
+        response = await client.get(
+            f"/api/teams/{team_id}/members",
+            headers={"Authorization": f"Bearer {outsider_token}"},
+        )
+        assert response.status_code == 403

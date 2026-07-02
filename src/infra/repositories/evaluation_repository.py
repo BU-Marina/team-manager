@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.domain.evaluations.entities import Evaluation
 from src.domain.evaluations.interfaces import EvaluationRepository
@@ -33,6 +33,14 @@ class SQLAlchemyEvaluationRepository(EvaluationRepository):
         await self._session.refresh(merged)
         if evaluation.id is None:
             evaluation.id = merged.id
+
+    async def get_average_score(self, user_id: int) -> float:
+        stmt = select(func.avg(EvaluationModel.score)).where(
+            EvaluationModel.evaluator_id == user_id
+        )
+        result = await self._session.execute(stmt)
+        avg = result.scalar()
+        return round(float(avg), 2) if avg else 0.0
 
     def _to_domain(self, model: EvaluationModel) -> Evaluation:
         return Evaluation(

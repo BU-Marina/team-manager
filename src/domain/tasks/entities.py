@@ -45,3 +45,18 @@ class Task:
         if self.status != TaskStatus.IN_PROGRESS:
             raise ValueError(f"Нельзя завершить задачу в статусе {self.status}")
         self.status = TaskStatus.DONE
+
+
+@dataclass
+class Comment:
+    task_id: int
+    author_id: int
+    text: str
+    id: int | None = None
+    created_at: datetime | None = None
+
+    @classmethod
+    def create(cls, task_id: int, author_id: int, text: str) -> "Comment":
+        if not text.strip():
+            raise ValueError("Комментарий не может быть пустым")
+        return cls(task_id=task_id, author_id=author_id, text=text)

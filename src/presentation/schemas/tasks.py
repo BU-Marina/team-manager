@@ -24,3 +24,14 @@ class TaskResponse(BaseModel):
     deadline: datetime | None = None
     status: str
     created_at: datetime | None = None
+
+
+class CommentCreateRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=1000)
+
+
+class CommentResponse(BaseModel):
+    id: int
+    author_id: int
+    text: str
+    created_at: datetime | None = None

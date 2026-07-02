@@ -32,3 +32,6 @@ class EvaluationUseCases:
 
     async def get_user_evaluations(self, user_id: int) -> list[Evaluation]:
         return await self._eval_repo.get_by_user(user_id)
+
+    async def get_average_score(self, user_id: int) -> float:
+        return await self._eval_repo.get_average_score(user_id)

@@ -10,6 +10,7 @@ from src.presentation.schemas.users import (
     UserResponse,
     ChangeRoleRequest,
     DeleteAccountResponse,
+    ChangePasswordRequest,
 )
 from src.presentation.api.dependencies import get_user_usecases, get_current_user
 
@@ -102,3 +103,18 @@ def _user_to_response(user: User) -> UserResponse:
         role=str(user.role),
         display_name=user.display_name,
     )
+
+
+@router.post("/change-password", response_model=dict)
+async def change_password(
+    data: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    usecases: UserUseCases = Depends(get_user_usecases),
+):
+    try:
+        await usecases.change_password(
+            current_user.id, data.old_password, data.new_password
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"message": "Пароль изменён"}

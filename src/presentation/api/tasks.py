@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from src.domain.users.entities import User
 from src.domain.tasks.usecases import TaskUseCases
-from src.presentation.api.dependencies import get_current_user
+from src.presentation.api.dependencies import get_current_user, require_team
 from src.presentation.schemas.tasks import (
     TaskCreateRequest,
     TaskUpdateStatusRequest,
     TaskResponse,
+    CommentCreateRequest,
+    CommentResponse,
 )
 from src.config.database import get_session
 from src.infra.repositories.task_repository import SQLAlchemyTaskRepository
@@ -32,6 +34,9 @@ async def create_task(
     current_user: User = Depends(get_current_user),
     usecases: TaskUseCases = Depends(get_task_usecases),
 ):
+    if current_user.team_id != data.team_id:
+        raise HTTPException(status_code=403, detail="Вы не состоите в этой команде")
+
     try:
         task = await usecases.create_task(
             title=data.title,
@@ -68,7 +73,7 @@ async def update_task_status(
 @router.get("/team/{team_id}", response_model=list[TaskResponse])
 async def get_team_tasks(
     team_id: int,
-    current_user: User = Depends(get_current_user),
+    _: None = Depends(require_team),
     usecases: TaskUseCases = Depends(get_task_usecases),
 ):
     tasks = await usecases.get_team_tasks(team_id)
@@ -95,4 +100,41 @@ def _task_to_response(task) -> TaskResponse:
         deadline=task.deadline,
         status=str(task.status),
         created_at=task.created_at,
+    )
+
+
+@router.post(
+    "/{task_id}/comments",
+    response_model=CommentResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def add_comment(
+    task_id: int,
+    data: CommentCreateRequest,
+    current_user: User = Depends(get_current_user),
+    usecases: TaskUseCases = Depends(get_task_usecases),
+):
+    try:
+        comment = await usecases.add_comment(task_id, current_user.id, data.text)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    return _comment_to_response(comment)
+
+
+@router.get("/{task_id}/comments", response_model=list[CommentResponse])
+async def get_comments(
+    task_id: int,
+    current_user: User = Depends(get_current_user),
+    usecases: TaskUseCases = Depends(get_task_usecases),
+):
+    comments = await usecases.get_comments(task_id)
+    return [_comment_to_response(c) for c in comments]
+
+
+def _comment_to_response(comment) -> CommentResponse:
+    return CommentResponse(
+        id=comment.id,
+        author_id=comment.author_id,
+        text=comment.text,
+        created_at=comment.created_at,
     )

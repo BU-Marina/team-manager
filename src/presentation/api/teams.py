@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from src.domain.users.entities import User
-from src.presentation.api.dependencies import get_current_user
+from src.presentation.api.dependencies import get_current_user, require_team
 from src.presentation.schemas.teams import (
     TeamCreateRequest,
     TeamJoinRequest,
@@ -70,7 +70,6 @@ async def get_my_teams(
 @router.get("/{team_id}/members", response_model=list[UserResponse])
 async def get_team_members(
     team_id: int,
-    current_user: User = Depends(get_current_user),
     usecases: TeamUseCases = Depends(get_team_usecases),
 ):
     members = await usecases.get_team_members(team_id)
@@ -80,3 +79,17 @@ async def get_team_members(
         )
         for m in members
     ]
+
+
+@router.delete("/{team_id}/members/{member_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_member(
+    team_id: int,
+    member_id: int,
+    current_user: User = Depends(get_current_user),
+    _: None = Depends(require_team),
+    usecases: TeamUseCases = Depends(get_team_usecases),
+):
+    try:
+        await usecases.remove_member(team_id, member_id, current_user.id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

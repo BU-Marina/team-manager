@@ -14,7 +14,9 @@ class Settings(BaseSettings):
     app_name: str = "Team Manager"
     debug: bool = False
     secret_key: str
-    database_url: str = "sqlite+aiosqlite:///./dev.db"
+    database_url: str = (
+        "postgresql+asyncpg://postgres:postgres@localhost:5432/team_manager"
+    )
     jwt_secret: str
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
