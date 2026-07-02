@@ -50,3 +50,14 @@ class TaskModel(Base):
     updated_at: Mapped[datetime | None] = mapped_column(
         DateTime, onupdate=func.now(), nullable=True
     )
+
+
+class EvaluationModel(Base):
+    __tablename__ = "evaluations"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    task_id: Mapped[int] = mapped_column(ForeignKey("tasks.id"), nullable=False)
+    evaluator_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    score: Mapped[int] = mapped_column(nullable=False)
+    comment: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

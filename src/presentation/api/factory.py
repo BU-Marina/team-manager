@@ -1,12 +1,15 @@
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+
 from src.config.settings import settings
 from src.config.database import engine
 from src.infra.database.models import Base
 from src.presentation.api.users import router as users_router
 from src.presentation.api.teams import router as teams_router
 from src.presentation.api.tasks import router as tasks_router
+from src.presentation.api.evaluations import router as evaluations_router
 
 
 @asynccontextmanager
@@ -31,6 +34,7 @@ def create_app() -> FastAPI:
     app.include_router(users_router)
     app.include_router(teams_router)
     app.include_router(tasks_router)
+    app.include_router(evaluations_router)
 
     return app
 
