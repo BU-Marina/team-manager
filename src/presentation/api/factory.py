@@ -1,11 +1,10 @@
-# src/presentation/api/factory.py
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-
 from src.config.settings import settings
 from src.config.database import engine
 from src.infra.database.models import Base
+from src.presentation.api.users import router as users_router  # ← добавлено
 
 
 @asynccontextmanager
@@ -25,9 +24,11 @@ def create_app() -> FastAPI:
     app.mount(
         "/static", StaticFiles(directory="src/presentation/static"), name="static"
     )
-    # TODO Роутеры будем подключать по мере готовности:
-    # app.include_router(users_router, prefix="/api")
+
+    # Роуты
+    app.include_router(users_router)
+
     return app
 
 
-app = create_app()  # для uvicorn
+app = create_app()

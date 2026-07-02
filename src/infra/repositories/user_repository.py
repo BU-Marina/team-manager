@@ -23,11 +23,12 @@ class SQLAlchemyUserRepository(UserRepository):
 
     async def save(self, user: User) -> None:
         model = self._converter.to_model(user)
-        await self._session.merge(model)
+        merged = await self._session.merge(model)
         await self._session.flush()
+        await self._session.refresh(merged)
         # Обновляем id у доменной сущности после сохранения
         if user.id is None:
-            user.id = model.id
+            user.id = merged.id
 
     async def get_by_id(self, user_id: int) -> User | None:
         stmt = select(UserModel).where(UserModel.id == user_id)
