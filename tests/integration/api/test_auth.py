@@ -2,6 +2,8 @@ import pytest
 from httpx import AsyncClient
 
 
+@pytest.mark.integration
+@pytest.mark.users
 @pytest.mark.asyncio
 class TestAuth:
     async def test_register_and_login(self, client: AsyncClient):

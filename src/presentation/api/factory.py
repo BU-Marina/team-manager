@@ -4,7 +4,8 @@ from fastapi.staticfiles import StaticFiles
 from src.config.settings import settings
 from src.config.database import engine
 from src.infra.database.models import Base
-from src.presentation.api.users import router as users_router  # ← добавлено
+from src.presentation.api.users import router as users_router
+from src.presentation.api.teams import router as teams_router
 
 
 @asynccontextmanager
@@ -27,6 +28,7 @@ def create_app() -> FastAPI:
 
     # Роуты
     app.include_router(users_router)
+    app.include_router(teams_router)
 
     return app
 

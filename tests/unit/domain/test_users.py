@@ -62,6 +62,9 @@ def usecases(repo, hasher):
 # --- Tests: Register ---
 
 
+@pytest.mark.unit
+@pytest.mark.users
+@pytest.mark.asyncio
 class TestRegister:
     async def test_register_creates_user(self, usecases, repo):
         user = await usecases.register("test@example.com", "SecurePass1")
@@ -93,6 +96,9 @@ class TestRegister:
 # --- Tests: Authenticate ---
 
 
+@pytest.mark.unit
+@pytest.mark.users
+@pytest.mark.asyncio
 class TestAuthenticate:
     async def test_authenticate_success(self, usecases):
         await usecases.register("test@example.com", "SecurePass1")

@@ -13,6 +13,7 @@ class UserConverter:
             role=UserRole(model.role),
             display_name=model.display_name,
             created_at=model.created_at,
+            team_id=model.team_id,
         )
 
     @staticmethod
@@ -24,4 +25,5 @@ class UserConverter:
             role=str(entity.role),
             display_name=entity.display_name,
             created_at=entity.created_at,
+            team_id=entity.team_id,
         )

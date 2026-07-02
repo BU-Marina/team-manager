@@ -32,3 +32,20 @@ class UserUseCases:
             raise ValueError("Неверный email или пароль")
 
         return user
+
+    async def get_by_id(self, user_id: int) -> User | None:
+        return await self._repo.get_by_id(user_id)
+
+    async def update_profile(self, user_id: int, **kwargs) -> User:
+        user = await self._repo.get_by_id(user_id)
+        if not user:
+            raise ValueError("Пользователь не найден")
+        user.update_profile(**kwargs)
+        await self._repo.save(user)
+        return user
+
+    async def delete_account(self, user_id: int) -> None:
+        user = await self._repo.get_by_id(user_id)
+        if not user:
+            raise ValueError("Пользователь не найден")
+        await self._repo.delete(user)

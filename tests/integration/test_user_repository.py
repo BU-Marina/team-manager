@@ -5,6 +5,8 @@ from src.domain.users.value_objects import Email
 from src.infra.repositories.user_repository import SQLAlchemyUserRepository
 
 
+@pytest.mark.integration
+@pytest.mark.users
 @pytest.mark.asyncio
 class TestUserRepository:
     async def test_save_and_retrieve(self, session):
