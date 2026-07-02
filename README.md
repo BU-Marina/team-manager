@@ -105,9 +105,3 @@ uv run pytest -m users          # Тесты модуля пользовател
 uv run pytest -m teams          # Тесты модуля команд
 
 Фикстуры для тестов находятся в tests/conftest.py. Для интеграционных тестов используется тестовая SQLite БД с автоматическим созданием и удалением таблиц.
-
-## CI/CD
-
-Команда для CI-пайплайна:
-
-uv run pytest --cov=src --cov-report=term-missing
