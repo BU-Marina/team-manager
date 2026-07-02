@@ -36,3 +36,57 @@ async def client(session):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
+
+
+@pytest_asyncio.fixture
+async def member_token(client: AsyncClient):
+    await client.post(
+        "/api/auth/register",
+        json={"email": "member@test.com", "password": "SecurePass1"},
+    )
+    resp = await client.post(
+        "/api/auth/login", json={"email": "member@test.com", "password": "SecurePass1"}
+    )
+    return resp.json()["access_token"]
+
+
+@pytest_asyncio.fixture
+async def manager_token(session, client: AsyncClient):
+    from src.domain.users.value_objects import Email, UserRole
+    from src.infra.repositories.user_repository import SQLAlchemyUserRepository
+
+    await client.post(
+        "/api/auth/register",
+        json={"email": "manager@test.com", "password": "SecurePass1"},
+    )
+
+    repo = SQLAlchemyUserRepository(session)
+    user = await repo.get_by_email(Email("manager@test.com"))
+    user.role = UserRole.MANAGER
+    await repo.save(user)
+
+    resp = await client.post(
+        "/api/auth/login", json={"email": "manager@test.com", "password": "SecurePass1"}
+    )
+    return resp.json()["access_token"]
+
+
+@pytest_asyncio.fixture
+async def admin_token(session, client: AsyncClient):
+    from src.domain.users.value_objects import Email, UserRole
+    from src.infra.repositories.user_repository import SQLAlchemyUserRepository
+
+    await client.post(
+        "/api/auth/register",
+        json={"email": "admin@test.com", "password": "SecurePass1"},
+    )
+
+    repo = SQLAlchemyUserRepository(session)
+    user = await repo.get_by_email(Email("admin@test.com"))
+    user.role = UserRole.ADMIN
+    await repo.save(user)
+
+    resp = await client.post(
+        "/api/auth/login", json={"email": "admin@test.com", "password": "SecurePass1"}
+    )
+    return resp.json()["access_token"]

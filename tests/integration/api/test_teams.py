@@ -6,42 +6,24 @@ from httpx import AsyncClient
 @pytest.mark.teams
 @pytest.mark.asyncio
 class TestTeams:
-    async def _register_and_login(
-        self, client: AsyncClient, email: str, password: str
-    ) -> str:
-        await client.post(
-            "/api/auth/register", json={"email": email, "password": password}
-        )
-        response = await client.post(
-            "/api/auth/login", json={"email": email, "password": password}
-        )
-        return response.json()["access_token"]
-
-    async def test_create_team(self, client: AsyncClient):
-        token = await self._register_and_login(client, "owner@test.com", "SecurePass1")
-
+    async def test_create_team(self, client: AsyncClient, manager_token: str):
         response = await client.post(
             "/api/teams/",
             json={"name": "Dream Team"},
-            headers={"Authorization": f"Bearer {token}"},
+            headers={"Authorization": f"Bearer {manager_token}"},
         )
         assert response.status_code == 201
         data = response.json()
         assert data["name"] == "Dream Team"
         assert "code" in data
 
-    async def test_join_team(self, client: AsyncClient):
-        owner_token = await self._register_and_login(
-            client, "owner2@test.com", "SecurePass1"
-        )
-        member_token = await self._register_and_login(
-            client, "member@test.com", "SecurePass1"
-        )
-
+    async def test_join_team(
+        self, client: AsyncClient, manager_token: str, member_token: str
+    ):
         create_resp = await client.post(
             "/api/teams/",
             json={"name": "Team"},
-            headers={"Authorization": f"Bearer {owner_token}"},
+            headers={"Authorization": f"Bearer {manager_token}"},
         )
         code = create_resp.json()["code"]
 
@@ -52,18 +34,13 @@ class TestTeams:
         )
         assert join_resp.status_code == 200
 
-    async def test_remove_member(self, client: AsyncClient):
-        owner_token = await self._register_and_login(
-            client, "owner_remove@test.com", "SecurePass1"
-        )
-        member_token = await self._register_and_login(
-            client, "member_remove@test.com", "SecurePass1"
-        )
-
+    async def test_remove_member(
+        self, client: AsyncClient, manager_token: str, member_token: str
+    ):
         create_resp = await client.post(
             "/api/teams/",
             json={"name": "Team"},
-            headers={"Authorization": f"Bearer {owner_token}"},
+            headers={"Authorization": f"Bearer {manager_token}"},
         )
         team_id = create_resp.json()["id"]
         code = create_resp.json()["code"]
@@ -71,14 +48,9 @@ class TestTeams:
         await client.post(
             "/api/teams/join",
             json={"code": code},
-            headers={"Authorization": f"Bearer {owner_token}"},
-        )
-
-        await client.post(
-            "/api/teams/join",
-            json={"code": code},
             headers={"Authorization": f"Bearer {member_token}"},
         )
+
         me_resp = await client.get(
             "/api/auth/me", headers={"Authorization": f"Bearer {member_token}"}
         )
@@ -86,27 +58,22 @@ class TestTeams:
 
         response = await client.delete(
             f"/api/teams/{team_id}/members/{member_id}",
-            headers={"Authorization": f"Bearer {owner_token}"},
+            headers={"Authorization": f"Bearer {manager_token}"},
         )
         assert response.status_code == 204
 
-    async def test_access_foreign_team_forbidden(self, client: AsyncClient):
-        owner_token = await self._register_and_login(
-            client, "owner1@test.com", "SecurePass1"
-        )
-        outsider_token = await self._register_and_login(
-            client, "outsider@test.com", "SecurePass1"
-        )
-
+    async def test_access_foreign_team_forbidden(
+        self, client: AsyncClient, manager_token: str, member_token: str
+    ):
         create_resp = await client.post(
             "/api/teams/",
             json={"name": "Team"},
-            headers={"Authorization": f"Bearer {owner_token}"},
+            headers={"Authorization": f"Bearer {manager_token}"},
         )
         team_id = create_resp.json()["id"]
 
         response = await client.get(
             f"/api/teams/{team_id}/members",
-            headers={"Authorization": f"Bearer {outsider_token}"},
+            headers={"Authorization": f"Bearer {member_token}"},
         )
         assert response.status_code == 403

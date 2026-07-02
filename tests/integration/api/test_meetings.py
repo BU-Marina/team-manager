@@ -7,24 +7,11 @@ from httpx import AsyncClient
 @pytest.mark.meetings
 @pytest.mark.asyncio
 class TestMeetingsAPI:
-    async def _register_and_login(
-        self, client: AsyncClient, email: str, password: str
-    ) -> str:
-        await client.post(
-            "/api/auth/register", json={"email": email, "password": password}
-        )
-        response = await client.post(
-            "/api/auth/login", json={"email": email, "password": password}
-        )
-        return response.json()["access_token"]
-
-    async def test_schedule_meeting(self, client: AsyncClient):
-        token = await self._register_and_login(client, "org@test.com", "SecurePass1")
-
+    async def test_schedule_meeting(self, client: AsyncClient, manager_token: str):
         create_team_resp = await client.post(
             "/api/teams/",
             json={"name": "Team"},
-            headers={"Authorization": f"Bearer {token}"},
+            headers={"Authorization": f"Bearer {manager_token}"},
         )
         team_id = create_team_resp.json()["id"]
         code = create_team_resp.json()["code"]
@@ -32,7 +19,7 @@ class TestMeetingsAPI:
         await client.post(
             "/api/teams/join",
             json={"code": code},
-            headers={"Authorization": f"Bearer {token}"},
+            headers={"Authorization": f"Bearer {manager_token}"},
         )
 
         now = datetime.now()
@@ -44,19 +31,19 @@ class TestMeetingsAPI:
                 "start_time": (now + timedelta(days=1)).isoformat(),
                 "end_time": (now + timedelta(days=1, hours=1)).isoformat(),
             },
-            headers={"Authorization": f"Bearer {token}"},
+            headers={"Authorization": f"Bearer {manager_token}"},
         )
         assert response.status_code == 201
         data = response.json()
         assert data["title"] == "Sprint Review"
 
-    async def test_schedule_conflict_fails(self, client: AsyncClient):
-        token = await self._register_and_login(client, "org2@test.com", "SecurePass1")
-
+    async def test_schedule_conflict_fails(
+        self, client: AsyncClient, manager_token: str
+    ):
         create_team_resp = await client.post(
             "/api/teams/",
             json={"name": "Team"},
-            headers={"Authorization": f"Bearer {token}"},
+            headers={"Authorization": f"Bearer {manager_token}"},
         )
         team_id = create_team_resp.json()["id"]
         code = create_team_resp.json()["code"]
@@ -64,14 +51,13 @@ class TestMeetingsAPI:
         await client.post(
             "/api/teams/join",
             json={"code": code},
-            headers={"Authorization": f"Bearer {token}"},
+            headers={"Authorization": f"Bearer {manager_token}"},
         )
 
         now = datetime.now()
         start = now + timedelta(days=2)
         end = start + timedelta(hours=1)
 
-        # Первая встреча
         await client.post(
             "/api/meetings/",
             json={
@@ -80,10 +66,9 @@ class TestMeetingsAPI:
                 "start_time": start.isoformat(),
                 "end_time": end.isoformat(),
             },
-            headers={"Authorization": f"Bearer {token}"},
+            headers={"Authorization": f"Bearer {manager_token}"},
         )
 
-        # Конфликт
         response = await client.post(
             "/api/meetings/",
             json={
@@ -92,6 +77,6 @@ class TestMeetingsAPI:
                 "start_time": start.isoformat(),
                 "end_time": end.isoformat(),
             },
-            headers={"Authorization": f"Bearer {token}"},
+            headers={"Authorization": f"Bearer {manager_token}"},
         )
         assert response.status_code == 400
